@@ -1,9 +1,14 @@
+"""
+Audio streaming and message handling for the Voice Assistant.
+
+Provides functions to send microphone audio to OpenAI and play back audio responses.
+"""
+
 import asyncio
 import base64
 import json
 import numpy as np
 import sounddevice as sd
-from websockets.legacy.protocol import WebSocketCommonProtocol
 from typing import Any
 
 SAMPLE_RATE: int = 24000
@@ -17,7 +22,16 @@ output_stream: sd.OutputStream = sd.OutputStream(
 )
 output_stream.start()
 
-async def receive_messages(websocket: WebSocketCommonProtocol) -> None:
+async def receive_messages(websocket: Any) -> None:
+    """
+    Receive and process messages from the OpenAI WebSocket.
+
+    Args:
+        websocket (Any): The WebSocket connection to receive messages from.
+
+    Returns:
+        None
+    """
     buffer: bytes = b''
 
     async for message in websocket:
@@ -43,8 +57,16 @@ async def receive_messages(websocket: WebSocketCommonProtocol) -> None:
         else:
             print(f"[Unhandled message type: {msg_type}]")
 
-async def stream_audio(websocket: WebSocketCommonProtocol) -> None:
-    """Record audio in real-time and send to OpenAI via WebSocket"""
+async def stream_audio(websocket: Any) -> None:
+    """
+    Record audio from the microphone in real-time and send it to OpenAI via WebSocket.
+
+    Args:
+        websocket (Any): The WebSocket connection to send audio data to.
+
+    Returns:
+        None
+    """
     with sd.InputStream(
         samplerate=SAMPLE_RATE,
         channels=1,

@@ -1,3 +1,8 @@
+"""
+Configuration loader for the Voice Assistant.
+Loads the OpenAI API key from environment variables using dotenv.
+"""
+
 import os
 from dotenv import load_dotenv
 

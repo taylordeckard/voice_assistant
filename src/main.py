@@ -1,9 +1,14 @@
+"""
+Main entry point for the Voice Assistant.
+
+Handles connection to OpenAI's GPT-4o real-time API and coordinates audio streaming and message handling.
+"""
+
 import asyncio
 import base64
 import json
 import ssl
 from websockets.asyncio.client import connect
-from websockets.legacy.protocol import WebSocketCommonProtocol
 from typing import Any
 
 from config import OPENAI_API_KEY
@@ -12,6 +17,12 @@ from audio import stream_audio, receive_messages
 SAMPLE_RATE: int = 24000
 
 async def main() -> None:
+    """
+    Connect to the OpenAI GPT-4o real-time WebSocket API, start a session, and concurrently stream audio and receive messages.
+
+    Returns:
+        None
+    """
     uri: str = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
     headers: dict[str, str] = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
