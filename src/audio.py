@@ -11,9 +11,7 @@ import numpy as np
 import sounddevice as sd
 from typing import Any
 
-SAMPLE_RATE: int = 24000
-CHUNK_SIZE: int = 1024
-CHANNELS: int = 1
+from config import SAMPLE_RATE, CHUNK_SIZE, CHANNELS
 
 output_stream: sd.OutputStream = sd.OutputStream(
     samplerate=SAMPLE_RATE,

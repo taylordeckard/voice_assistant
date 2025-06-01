@@ -11,10 +11,8 @@ import ssl
 from websockets.asyncio.client import connect
 from typing import Any
 
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, SAMPLE_RATE
 from audio import stream_audio, receive_messages
-
-SAMPLE_RATE: int = 24000
 
 async def main() -> None:
     """
