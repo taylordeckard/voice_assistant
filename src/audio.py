@@ -7,11 +7,15 @@ Provides functions to send microphone audio to OpenAI and play back audio respon
 import asyncio
 import base64
 import json
-import numpy as np
-import sounddevice as sd
+import logging
 from typing import Any
 
+import numpy as np
+import sounddevice as sd
+
 from config import SAMPLE_RATE, CHUNK_SIZE, CHANNELS
+
+logger = logging.getLogger(__name__)
 
 output_stream: sd.OutputStream = sd.OutputStream(
     samplerate=SAMPLE_RATE,
@@ -30,30 +34,33 @@ async def receive_messages(websocket: Any) -> None:
     Returns:
         None
     """
-    buffer: bytes = b''
+    try:
+        async for message in websocket:
+            data: dict[str, Any] = json.loads(message)
+            msg_type: str | None = data.get("type")
 
-    async for message in websocket:
-        data: dict[str, Any] = json.loads(message)
-        msg_type: str | None = data.get("type")
+            if msg_type == "response.text.delta":
+                print(data["text"], end="", flush=True)
 
-        if msg_type == "response.text.delta":
-            print(data["text"], end="", flush=True)
+            elif msg_type == "response.text":
+                print()  # finalize assistant output line
 
-        elif msg_type == "response.text":
-            print()  # finalize assistant output line
+            elif msg_type == "response.audio.delta":
+                logger.debug("data keys: %s", list(data.keys()))
+                audio_chunk: bytes = base64.b64decode(data["delta"])
+                logger.debug("\U0001F50A Playing audio...")
+                audio_np: np.ndarray = np.frombuffer(audio_chunk, dtype=np.int16)
+                output_stream.write(audio_np)
 
-        elif msg_type == "response.audio.delta":
-            print(f"[DEBUG] data keys: {list(data.keys())}")
-            audio_chunk: bytes = base64.b64decode(data["delta"])
-            print("🔊 Playing audio...")
-            audio_np: np.ndarray = np.frombuffer(audio_chunk, dtype=np.int16)
-            output_stream.write(audio_np)
+            elif msg_type == "error":
+                print(f"\n❌ ERROR: {data['error']['message']}")
 
-        elif msg_type == "error":
-            print(f"\n❌ ERROR: {data['error']['message']}")
-
-        else:
-            print(f"[Unhandled message type: {msg_type}]")
+            else:
+                print(f"[Unhandled message type: {msg_type}]")
+    except asyncio.CancelledError:
+        logger.info("Message receiving cancelled.")
+    finally:
+        output_stream.close()
 
 async def stream_audio(websocket: Any) -> None:
     """
@@ -71,7 +78,7 @@ async def stream_audio(websocket: Any) -> None:
         dtype='int16',
         blocksize=CHUNK_SIZE,
     ) as stream:
-        print("🎙️ Start speaking...")
+        logger.info("🎙️ Start speaking...")
         try:
             while True:
                 audio_chunk, _ = stream.read(CHUNK_SIZE)
@@ -85,5 +92,4 @@ async def stream_audio(websocket: Any) -> None:
                 await websocket.send(json.dumps(msg))
                 await asyncio.sleep(CHUNK_SIZE / SAMPLE_RATE)
         except asyncio.CancelledError:
-            print("🔇 Audio streaming stopped.")
-            pass
+            logger.info("🔇 Audio streaming stopped.")
